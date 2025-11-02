@@ -13,7 +13,10 @@ import * as $forgot_password from "./routes/forgot-password.tsx";
 import * as $index from "./routes/index.tsx";
 import * as $lib_token_refresh from "./routes/lib/token-refresh.ts";
 import * as $login from "./routes/login.tsx";
+import * as $mockups_athlete_dashboard from "./routes/mockups/athlete-dashboard.tsx";
 import * as $mockups_index from "./routes/mockups/index.tsx";
+import * as $mockups_workout_categories_admin from "./routes/mockups/workout-categories-admin.tsx";
+import * as $mockups_workout_plan_wizard from "./routes/mockups/workout-plan-wizard.tsx";
 import * as $resend_verification from "./routes/resend-verification.tsx";
 import * as $reset_password from "./routes/reset-password.tsx";
 import * as $signup from "./routes/signup.tsx";
@@ -28,6 +31,8 @@ import * as $LoginForm from "./islands/LoginForm.tsx";
 import * as $ResetPasswordForm from "./islands/ResetPasswordForm.tsx";
 import * as $SignupForm from "./islands/SignupForm.tsx";
 import * as $TwoFactorSetup from "./islands/TwoFactorSetup.tsx";
+import * as $mockups_AthleteDashboard from "./islands/mockups/AthleteDashboard.tsx";
+import * as $mockups_WorkoutPlanWizard from "./islands/mockups/WorkoutPlanWizard.tsx";
 import type { Manifest } from "$fresh/server.ts";
 
 const manifest = {
@@ -43,7 +48,11 @@ const manifest = {
     "./routes/index.tsx": $index,
     "./routes/lib/token-refresh.ts": $lib_token_refresh,
     "./routes/login.tsx": $login,
+    "./routes/mockups/athlete-dashboard.tsx": $mockups_athlete_dashboard,
     "./routes/mockups/index.tsx": $mockups_index,
+    "./routes/mockups/workout-categories-admin.tsx":
+      $mockups_workout_categories_admin,
+    "./routes/mockups/workout-plan-wizard.tsx": $mockups_workout_plan_wizard,
     "./routes/resend-verification.tsx": $resend_verification,
     "./routes/reset-password.tsx": $reset_password,
     "./routes/signup.tsx": $signup,
@@ -60,6 +69,8 @@ const manifest = {
     "./islands/ResetPasswordForm.tsx": $ResetPasswordForm,
     "./islands/SignupForm.tsx": $SignupForm,
     "./islands/TwoFactorSetup.tsx": $TwoFactorSetup,
+    "./islands/mockups/AthleteDashboard.tsx": $mockups_AthleteDashboard,
+    "./islands/mockups/WorkoutPlanWizard.tsx": $mockups_WorkoutPlanWizard,
   },
   baseUrl: import.meta.url,
 } satisfies Manifest;

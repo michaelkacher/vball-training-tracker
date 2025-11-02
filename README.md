@@ -905,3 +905,20 @@ deno task users:make-admin email@example.com
 - [Admin Panel Quick Start](docs/ADMIN_QUICK_START.md) - Quick reference
 - [Admin Panel Guide](docs/ADMIN_PANEL.md) - Complete documentation
 - [Admin Implementation Summary](docs/ADMIN_IMPLEMENTATION_SUMMARY.md) - Technical details
+
+
+
+
+
+
+# Usability items
+* With no .env file, runs in auth mode (think fixed, validate with new project)
+* Deno 2 Starter is hardcoded in several places. Change to an env var?
+* need instructions on set up auth and first admin
+
+
+# User steps Steps
+* copy .env file need to:
+  * seed admin user local
+  * add jwt info 
+
