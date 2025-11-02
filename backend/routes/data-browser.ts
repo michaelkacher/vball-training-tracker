@@ -19,6 +19,8 @@ const MODEL_PREFIXES = [
   'password_reset',
   'email_verification',
   'workout_category',
+  'workout_plan',
+  'user_workout_plans',
 ];
 
 /**

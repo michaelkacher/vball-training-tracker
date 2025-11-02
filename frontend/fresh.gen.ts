@@ -22,6 +22,7 @@ import * as $resend_verification from "./routes/resend-verification.tsx";
 import * as $reset_password from "./routes/reset-password.tsx";
 import * as $signup from "./routes/signup.tsx";
 import * as $verify_email from "./routes/verify-email.tsx";
+import * as $workout_plans_new from "./routes/workout-plans/new.tsx";
 import * as $AdminDataBrowser from "./islands/AdminDataBrowser.tsx";
 import * as $AdminUserTable from "./islands/AdminUserTable.tsx";
 import * as $AuthBanner from "./islands/AuthBanner.tsx";
@@ -32,6 +33,7 @@ import * as $LoginForm from "./islands/LoginForm.tsx";
 import * as $ResetPasswordForm from "./islands/ResetPasswordForm.tsx";
 import * as $SignupForm from "./islands/SignupForm.tsx";
 import * as $TwoFactorSetup from "./islands/TwoFactorSetup.tsx";
+import * as $WorkoutPlanWizard from "./islands/WorkoutPlanWizard.tsx";
 import * as $admin_WorkoutCategoriesAdmin from "./islands/admin/WorkoutCategoriesAdmin.tsx";
 import * as $mockups_AthleteDashboard from "./islands/mockups/AthleteDashboard.tsx";
 import * as $mockups_WorkoutPlanWizard from "./islands/mockups/WorkoutPlanWizard.tsx";
@@ -60,6 +62,7 @@ const manifest = {
     "./routes/reset-password.tsx": $reset_password,
     "./routes/signup.tsx": $signup,
     "./routes/verify-email.tsx": $verify_email,
+    "./routes/workout-plans/new.tsx": $workout_plans_new,
   },
   islands: {
     "./islands/AdminDataBrowser.tsx": $AdminDataBrowser,
@@ -72,6 +75,7 @@ const manifest = {
     "./islands/ResetPasswordForm.tsx": $ResetPasswordForm,
     "./islands/SignupForm.tsx": $SignupForm,
     "./islands/TwoFactorSetup.tsx": $TwoFactorSetup,
+    "./islands/WorkoutPlanWizard.tsx": $WorkoutPlanWizard,
     "./islands/admin/WorkoutCategoriesAdmin.tsx": $admin_WorkoutCategoriesAdmin,
     "./islands/mockups/AthleteDashboard.tsx": $mockups_AthleteDashboard,
     "./islands/mockups/WorkoutPlanWizard.tsx": $mockups_WorkoutPlanWizard,

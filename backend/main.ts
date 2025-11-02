@@ -76,6 +76,7 @@ import authRoutes from './routes/auth.ts';
 import dataBrowserRoutes from './routes/data-browser.ts';
 import twoFactorRoutes from './routes/two-factor.ts';
 import workoutCategoriesRoutes from './routes/admin/workout-categories.ts';
+import workoutPlansRoutes from './routes/workout-plans.ts';
 
 // Mount routes (more specific routes first to avoid conflicts)
 app.route('/api/auth', authRoutes);
@@ -83,6 +84,7 @@ app.route('/api/2fa', twoFactorRoutes);
 app.route('/api/admin/data', dataBrowserRoutes);
 app.route('/api/admin/workout-categories', workoutCategoriesRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/workout-plans', workoutPlansRoutes);
 
 // 404 handler
 app.notFound((c) => {
