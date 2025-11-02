@@ -8,6 +8,7 @@ import * as $_app from "./routes/_app.tsx";
 import * as $_middleware from "./routes/_middleware.ts";
 import * as $admin_data from "./routes/admin/data.tsx";
 import * as $admin_users from "./routes/admin/users.tsx";
+import * as $admin_workout_categories from "./routes/admin/workout-categories.tsx";
 import * as $design_system from "./routes/design-system.tsx";
 import * as $forgot_password from "./routes/forgot-password.tsx";
 import * as $index from "./routes/index.tsx";
@@ -31,6 +32,7 @@ import * as $LoginForm from "./islands/LoginForm.tsx";
 import * as $ResetPasswordForm from "./islands/ResetPasswordForm.tsx";
 import * as $SignupForm from "./islands/SignupForm.tsx";
 import * as $TwoFactorSetup from "./islands/TwoFactorSetup.tsx";
+import * as $admin_WorkoutCategoriesAdmin from "./islands/admin/WorkoutCategoriesAdmin.tsx";
 import * as $mockups_AthleteDashboard from "./islands/mockups/AthleteDashboard.tsx";
 import * as $mockups_WorkoutPlanWizard from "./islands/mockups/WorkoutPlanWizard.tsx";
 import type { Manifest } from "$fresh/server.ts";
@@ -43,6 +45,7 @@ const manifest = {
     "./routes/_middleware.ts": $_middleware,
     "./routes/admin/data.tsx": $admin_data,
     "./routes/admin/users.tsx": $admin_users,
+    "./routes/admin/workout-categories.tsx": $admin_workout_categories,
     "./routes/design-system.tsx": $design_system,
     "./routes/forgot-password.tsx": $forgot_password,
     "./routes/index.tsx": $index,
@@ -69,6 +72,7 @@ const manifest = {
     "./islands/ResetPasswordForm.tsx": $ResetPasswordForm,
     "./islands/SignupForm.tsx": $SignupForm,
     "./islands/TwoFactorSetup.tsx": $TwoFactorSetup,
+    "./islands/admin/WorkoutCategoriesAdmin.tsx": $admin_WorkoutCategoriesAdmin,
     "./islands/mockups/AthleteDashboard.tsx": $mockups_AthleteDashboard,
     "./islands/mockups/WorkoutPlanWizard.tsx": $mockups_WorkoutPlanWizard,
   },

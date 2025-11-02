@@ -915,7 +915,8 @@ deno task users:make-admin email@example.com
 * With no .env file, runs in auth mode (think fixed, validate with new project)
 * Deno 2 Starter is hardcoded in several places. Change to an env var?
 * need instructions on set up auth and first admin
-
+* Should e2e and unit tests be written for auth?
+* Can data browser update for new models?
 
 # User steps Steps
 * copy .env file need to:
