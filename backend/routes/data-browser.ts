@@ -18,6 +18,7 @@ const MODEL_PREFIXES = [
   'token_blacklist',
   'password_reset',
   'email_verification',
+  'workout_category',
 ];
 
 /**

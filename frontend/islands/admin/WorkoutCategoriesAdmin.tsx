@@ -3,8 +3,7 @@
  * Interactive component for managing workout categories and exercises
  */
 
-import { useSignal, useComputed } from '@preact/signals';
-import { useEffect } from 'preact/hooks';
+import { useState, useEffect } from 'preact/hooks';
 
 // Types
 interface Exercise {
@@ -32,25 +31,74 @@ interface Props {
   initialCategories: WorkoutCategory[];
 }
 
+// Validation schemas (simple validation without Zod dependency)
+const validateCategory = (name: string, focusArea: string, keyObjective: string): string | null => {
+  if (!name || name.trim().length === 0) {
+    return 'Category name is required';
+  }
+  if (name.length > 100) {
+    return 'Category name must be 100 characters or less';
+  }
+  if (!focusArea || focusArea.trim().length === 0) {
+    return 'Focus area is required';
+  }
+  if (focusArea.length > 100) {
+    return 'Focus area must be 100 characters or less';
+  }
+  if (!keyObjective || keyObjective.trim().length === 0) {
+    return 'Key objective is required';
+  }
+  if (keyObjective.length > 500) {
+    return 'Key objective must be 500 characters or less';
+  }
+  return null;
+};
+
+const validateExercise = (
+  name: string,
+  sets: number,
+  repetitions: string,
+  difficulty: string,
+  description: string
+): string | null => {
+  if (!name || name.trim().length === 0) {
+    return 'Exercise name is required';
+  }
+  if (name.length > 100) {
+    return 'Exercise name must be 100 characters or less';
+  }
+  if (!sets || sets < 1 || sets > 10) {
+    return 'Sets must be between 1 and 10';
+  }
+  if (!repetitions || repetitions.trim().length === 0) {
+    return 'Repetitions is required';
+  }
+  if (repetitions.length > 50) {
+    return 'Repetitions must be 50 characters or less';
+  }
+  if (!['easy', 'medium', 'challenging'].includes(difficulty)) {
+    return 'Invalid difficulty level';
+  }
+  if (description && description.length > 500) {
+    return 'Description must be 500 characters or less';
+  }
+  return null;
+};
+
 // Helper to get API URL
 const getApiUrl = () => {
-  return window.location.origin.replace(':3000', ':8000') + '/api';
+  if (typeof window !== 'undefined') {
+    return window.location.origin.replace(':3000', ':8000') + '/api';
+  }
+  return 'http://localhost:8000/api';
 };
 
 // Helper to get auth token
 const getToken = () => {
+  if (typeof document === 'undefined') return '';
   return document.cookie.split('; ')
     .find((c) => c.startsWith('auth_token='))
-    ?.split('=')[1];
-};
-
-// Helper to format date
-const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+    ?.split('=')[1] || '';
 };
 
 // Difficulty Badge Component
@@ -260,7 +308,9 @@ function Toast({
 
   return (
     <div class={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border shadow-lg ${colors} flex items-center gap-3 max-w-md`}>
-      <p class="flex-1">{message}</p>
+      <div class="flex-1">
+        <p class="font-medium">{message}</p>
+      </div>
       <button
         onClick={onClose}
         class="text-current opacity-70 hover:opacity-100 transition-opacity"
@@ -276,44 +326,40 @@ function Toast({
 // Main Component
 export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
   // State
-  const categories = useSignal<WorkoutCategory[]>(initialCategories);
-  const selectedCategoryId = useSignal<string | null>(
+  const [categories, setCategories] = useState<WorkoutCategory[]>(initialCategories);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     initialCategories.length > 0 ? initialCategories[0].id : null
   );
-  const searchQuery = useSignal('');
-  const loading = useSignal(false);
-  const toastMessage = useSignal('');
-  const toastType = useSignal<'success' | 'error'>('success');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
   // Modal states
-  const showCreateCategoryModal = useSignal(false);
-  const showEditCategoryModal = useSignal(false);
-  const showAddExerciseModal = useSignal(false);
-  const showEditExerciseModal = useSignal(false);
-  const editingCategory = useSignal<WorkoutCategory | null>(null);
-  const editingExercise = useSignal<Exercise | null>(null);
+  const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false);
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
+  const [showEditExerciseModal, setShowEditExerciseModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<WorkoutCategory | null>(null);
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
 
   // Drag and drop state
-  const draggedExerciseId = useSignal<string | null>(null);
+  const [draggedExerciseId, setDraggedExerciseId] = useState<string | null>(null);
 
   // Computed values
-  const filteredCategories = useComputed(() => {
-    if (!searchQuery.value) return categories.value;
-    const query = searchQuery.value.toLowerCase();
-    return categories.value.filter(cat =>
-      cat.name.toLowerCase().includes(query) ||
-      cat.focusArea.toLowerCase().includes(query)
-    );
-  });
+  const filteredCategories = searchQuery
+    ? categories.filter(cat =>
+        cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        cat.focusArea.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : categories;
 
-  const selectedCategory = useComputed(() => {
-    return categories.value.find(c => c.id === selectedCategoryId.value) || null;
-  });
+  const selectedCategory = categories.find(c => c.id === selectedCategoryId) || null;
 
   // Show toast
   const showToast = (message: string, type: 'success' | 'error') => {
-    toastMessage.value = message;
-    toastType.value = type;
+    setToastMessage(message);
+    setToastType(type);
   };
 
   // Fetch category details with exercises
@@ -333,8 +379,10 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
       const data = await response.json();
 
       // Update the category in the list with full details
-      categories.value = categories.value.map(cat =>
-        cat.id === categoryId ? data : cat
+      setCategories(prevCategories =>
+        prevCategories.map(cat =>
+          cat.id === categoryId ? data : cat
+        )
       );
     } catch (error) {
       showToast('Failed to load category details', 'error');
@@ -344,7 +392,7 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
 
   // Fetch all categories
   const fetchCategories = async () => {
-    loading.value = true;
+    setLoading(true);
     try {
       const token = getToken();
       const response = await fetch(`${getApiUrl()}/admin/workout-categories`, {
@@ -358,18 +406,24 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
       }
 
       const data = await response.json();
-      categories.value = data.categories;
+      setCategories(data.categories);
     } catch (error) {
       showToast('Failed to load categories', 'error');
       console.error(error);
     } finally {
-      loading.value = false;
+      setLoading(false);
     }
   };
 
   // Create category
   const createCategory = async (name: string, focusArea: string, keyObjective: string) => {
-    loading.value = true;
+    const validationError = validateCategory(name, focusArea, keyObjective);
+    if (validationError) {
+      showToast(validationError, 'error');
+      return;
+    }
+
+    setLoading(true);
     try {
       const token = getToken();
       const response = await fetch(`${getApiUrl()}/admin/workout-categories`, {
@@ -387,21 +441,27 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
       }
 
       const newCategory = await response.json();
-      categories.value = [...categories.value, newCategory];
-      selectedCategoryId.value = newCategory.id;
-      showCreateCategoryModal.value = false;
+      setCategories([...categories, newCategory]);
+      setSelectedCategoryId(newCategory.id);
+      setShowCreateCategoryModal(false);
       showToast('Category created successfully', 'success');
-    } catch (error) {
+    } catch (error: any) {
       showToast(error.message || 'Failed to create category', 'error');
       console.error(error);
     } finally {
-      loading.value = false;
+      setLoading(false);
     }
   };
 
   // Update category
   const updateCategory = async (categoryId: string, name: string, focusArea: string, keyObjective: string) => {
-    loading.value = true;
+    const validationError = validateCategory(name, focusArea, keyObjective);
+    if (validationError) {
+      showToast(validationError, 'error');
+      return;
+    }
+
+    setLoading(true);
     try {
       const token = getToken();
       const response = await fetch(`${getApiUrl()}/admin/workout-categories/${categoryId}`, {
@@ -419,17 +479,17 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
       }
 
       const updatedCategory = await response.json();
-      categories.value = categories.value.map(cat =>
+      setCategories(categories.map(cat =>
         cat.id === categoryId ? updatedCategory : cat
-      );
-      showEditCategoryModal.value = false;
-      editingCategory.value = null;
+      ));
+      setShowEditCategoryModal(false);
+      setEditingCategory(null);
       showToast('Category updated successfully', 'success');
-    } catch (error) {
+    } catch (error: any) {
       showToast(error.message || 'Failed to update category', 'error');
       console.error(error);
     } finally {
-      loading.value = false;
+      setLoading(false);
     }
   };
 
@@ -439,7 +499,7 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
       return;
     }
 
-    loading.value = true;
+    setLoading(true);
     try {
       const token = getToken();
       const response = await fetch(`${getApiUrl()}/admin/workout-categories/${categoryId}`, {
@@ -453,16 +513,17 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
         throw new Error('Failed to delete category');
       }
 
-      categories.value = categories.value.filter(cat => cat.id !== categoryId);
-      if (selectedCategoryId.value === categoryId) {
-        selectedCategoryId.value = categories.value.length > 0 ? categories.value[0].id : null;
+      const remainingCategories = categories.filter(cat => cat.id !== categoryId);
+      setCategories(remainingCategories);
+      if (selectedCategoryId === categoryId) {
+        setSelectedCategoryId(remainingCategories.length > 0 ? remainingCategories[0].id : null);
       }
       showToast('Category deleted successfully', 'success');
     } catch (error) {
       showToast('Failed to delete category', 'error');
       console.error(error);
     } finally {
-      loading.value = false;
+      setLoading(false);
     }
   };
 
@@ -475,7 +536,13 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
     difficulty: string,
     description: string
   ) => {
-    loading.value = true;
+    const validationError = validateExercise(name, sets, repetitions, difficulty, description);
+    if (validationError) {
+      showToast(validationError, 'error');
+      return;
+    }
+
+    setLoading(true);
     try {
       const token = getToken();
       const response = await fetch(`${getApiUrl()}/admin/workout-categories/${categoryId}/exercises`, {
@@ -493,13 +560,13 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
       }
 
       await fetchCategoryDetails(categoryId);
-      showAddExerciseModal.value = false;
+      setShowAddExerciseModal(false);
       showToast('Exercise added successfully', 'success');
-    } catch (error) {
+    } catch (error: any) {
       showToast(error.message || 'Failed to add exercise', 'error');
       console.error(error);
     } finally {
-      loading.value = false;
+      setLoading(false);
     }
   };
 
@@ -513,7 +580,13 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
     difficulty: string,
     description: string
   ) => {
-    loading.value = true;
+    const validationError = validateExercise(name, sets, repetitions, difficulty, description);
+    if (validationError) {
+      showToast(validationError, 'error');
+      return;
+    }
+
+    setLoading(true);
     try {
       const token = getToken();
       const response = await fetch(`${getApiUrl()}/admin/workout-categories/${categoryId}/exercises/${exerciseId}`, {
@@ -531,14 +604,14 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
       }
 
       await fetchCategoryDetails(categoryId);
-      showEditExerciseModal.value = false;
-      editingExercise.value = null;
+      setShowEditExerciseModal(false);
+      setEditingExercise(null);
       showToast('Exercise updated successfully', 'success');
-    } catch (error) {
+    } catch (error: any) {
       showToast(error.message || 'Failed to update exercise', 'error');
       console.error(error);
     } finally {
-      loading.value = false;
+      setLoading(false);
     }
   };
 
@@ -548,7 +621,7 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
       return;
     }
 
-    loading.value = true;
+    setLoading(true);
     try {
       const token = getToken();
       const response = await fetch(`${getApiUrl()}/admin/workout-categories/${categoryId}/exercises/${exerciseId}`, {
@@ -568,13 +641,13 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
       showToast('Failed to delete exercise', 'error');
       console.error(error);
     } finally {
-      loading.value = false;
+      setLoading(false);
     }
   };
 
   // Duplicate exercise
   const duplicateExercise = async (categoryId: string, exerciseId: string) => {
-    loading.value = true;
+    setLoading(true);
     try {
       const token = getToken();
       const response = await fetch(`${getApiUrl()}/admin/workout-categories/${categoryId}/exercises/${exerciseId}/duplicate`, {
@@ -593,17 +666,17 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
 
       await fetchCategoryDetails(categoryId);
       showToast('Exercise duplicated successfully', 'success');
-    } catch (error) {
+    } catch (error: any) {
       showToast(error.message || 'Failed to duplicate exercise', 'error');
       console.error(error);
     } finally {
-      loading.value = false;
+      setLoading(false);
     }
   };
 
   // Reorder exercises
   const reorderExercises = async (categoryId: string, exerciseIds: string[]) => {
-    loading.value = true;
+    setLoading(true);
     try {
       const token = getToken();
       const response = await fetch(`${getApiUrl()}/admin/workout-categories/${categoryId}/exercises/reorder`, {
@@ -622,17 +695,17 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
 
       await fetchCategoryDetails(categoryId);
       showToast('Exercises reordered successfully', 'success');
-    } catch (error) {
+    } catch (error: any) {
       showToast(error.message || 'Failed to reorder exercises', 'error');
       console.error(error);
     } finally {
-      loading.value = false;
+      setLoading(false);
     }
   };
 
   // Drag and drop handlers
   const handleDragStart = (exerciseId: string) => (e: DragEvent) => {
-    draggedExerciseId.value = exerciseId;
+    setDraggedExerciseId(exerciseId);
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move';
     }
@@ -648,12 +721,12 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
   const handleDrop = (targetExerciseId: string) => async (e: DragEvent) => {
     e.preventDefault();
 
-    const draggedId = draggedExerciseId.value;
-    if (!draggedId || draggedId === targetExerciseId || !selectedCategory.value?.exercises) {
+    const draggedId = draggedExerciseId;
+    if (!draggedId || draggedId === targetExerciseId || !selectedCategory?.exercises) {
       return;
     }
 
-    const exercises = selectedCategory.value.exercises;
+    const exercises = selectedCategory.exercises;
     const draggedIndex = exercises.findIndex(ex => ex.id === draggedId);
     const targetIndex = exercises.findIndex(ex => ex.id === targetExerciseId);
 
@@ -665,30 +738,30 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
     newExercises.splice(targetIndex, 0, draggedExercise);
 
     // Update local state
-    categories.value = categories.value.map(cat =>
-      cat.id === selectedCategory.value?.id
+    setCategories(categories.map(cat =>
+      cat.id === selectedCategory?.id
         ? { ...cat, exercises: newExercises }
         : cat
-    );
+    ));
 
     // Send to backend
     await reorderExercises(
-      selectedCategory.value.id,
+      selectedCategory.id,
       newExercises.map(ex => ex.id)
     );
 
-    draggedExerciseId.value = null;
+    setDraggedExerciseId(null);
   };
 
   // Load category details when selected
   useEffect(() => {
-    if (selectedCategoryId.value) {
-      const category = categories.value.find(c => c.id === selectedCategoryId.value);
+    if (selectedCategoryId) {
+      const category = categories.find(c => c.id === selectedCategoryId);
       if (category && !category.exercises) {
-        fetchCategoryDetails(selectedCategoryId.value);
+        fetchCategoryDetails(selectedCategoryId);
       }
     }
-  }, [selectedCategoryId.value]);
+  }, [selectedCategoryId]);
 
   return (
     <div class="flex h-[calc(100vh-89px)]">
@@ -697,7 +770,7 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
         <div class="p-4">
           {/* New Category Button */}
           <button
-            onClick={() => showCreateCategoryModal.value = true}
+            onClick={() => setShowCreateCategoryModal(true)}
             class="w-full mb-4 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors shadow-sm"
           >
             + New Category
@@ -710,8 +783,8 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
                 type="text"
                 placeholder="Search categories..."
                 class="w-full px-4 py-2 pl-10 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={searchQuery.value}
-                onInput={(e) => searchQuery.value = (e.target as HTMLInputElement).value}
+                value={searchQuery}
+                onInput={(e) => setSearchQuery((e.target as HTMLInputElement).value)}
               />
               <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -722,14 +795,14 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
           {/* Categories list */}
           <div class="space-y-2">
             <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 mb-2">
-              Categories ({filteredCategories.value.length})
+              Categories ({filteredCategories.length})
             </div>
-            {filteredCategories.value.map(category => (
+            {filteredCategories.map(category => (
               <CategoryItem
                 key={category.id}
                 category={category}
-                isSelected={category.id === selectedCategoryId.value}
-                onClick={() => selectedCategoryId.value = category.id}
+                isSelected={category.id === selectedCategoryId}
+                onClick={() => setSelectedCategoryId(category.id)}
               />
             ))}
           </div>
@@ -753,21 +826,21 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
 
       {/* Main content */}
       <main class="flex-1 overflow-hidden bg-gray-50">
-        {selectedCategory.value ? (
+        {selectedCategory ? (
           <div class="h-full overflow-y-auto">
             {/* Category header */}
             <div class="bg-white border-b border-gray-200 p-6 sticky top-0 z-10">
               <div class="flex items-start justify-between gap-4 mb-4">
                 <div class="flex-1">
-                  <h2 class="text-2xl font-bold text-gray-900 mb-2">{selectedCategory.value.name}</h2>
+                  <h2 class="text-2xl font-bold text-gray-900 mb-2">{selectedCategory.name}</h2>
                   <div class="space-y-1">
                     <div class="text-sm">
                       <span class="font-medium text-gray-700">Focus Area:</span>{' '}
-                      <span class="text-gray-600">{selectedCategory.value.focusArea}</span>
+                      <span class="text-gray-600">{selectedCategory.focusArea}</span>
                     </div>
                     <div class="text-sm">
                       <span class="font-medium text-gray-700">Key Objective:</span>{' '}
-                      <span class="text-gray-600">{selectedCategory.value.keyObjective}</span>
+                      <span class="text-gray-600">{selectedCategory.keyObjective}</span>
                     </div>
                   </div>
                 </div>
@@ -776,15 +849,15 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
                 <div class="flex gap-2">
                   <button
                     onClick={() => {
-                      editingCategory.value = selectedCategory.value;
-                      showEditCategoryModal.value = true;
+                      setEditingCategory(selectedCategory);
+                      setShowEditCategoryModal(true);
                     }}
                     class="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
                   >
                     Edit Category
                   </button>
                   <button
-                    onClick={() => deleteCategory(selectedCategory.value!.id)}
+                    onClick={() => deleteCategory(selectedCategory.id)}
                     class="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
                   >
                     Delete Category
@@ -794,10 +867,10 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
 
               <div class="flex items-center justify-between pt-4 border-t border-gray-200">
                 <div class="text-sm text-gray-600">
-                  <strong>{selectedCategory.value.exercises?.length || 0}</strong> exercises in this category
+                  <strong>{selectedCategory.exercises?.length || 0}</strong> exercises in this category
                 </div>
                 <button
-                  onClick={() => showAddExerciseModal.value = true}
+                  onClick={() => setShowAddExerciseModal(true)}
                   class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm"
                 >
                   + Add Exercise
@@ -807,18 +880,18 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
 
             {/* Exercises list */}
             <div class="p-6 space-y-4">
-              {selectedCategory.value.exercises?.map((exercise, index) => (
+              {selectedCategory.exercises?.map((exercise, index) => (
                 <ExerciseCard
                   key={exercise.id}
                   exercise={exercise}
                   index={index}
-                  categoryId={selectedCategory.value!.id}
+                  categoryId={selectedCategory.id}
                   onEdit={() => {
-                    editingExercise.value = exercise;
-                    showEditExerciseModal.value = true;
+                    setEditingExercise(exercise);
+                    setShowEditExerciseModal(true);
                   }}
-                  onDuplicate={() => duplicateExercise(selectedCategory.value!.id, exercise.id)}
-                  onDelete={() => deleteExercise(selectedCategory.value!.id, exercise.id)}
+                  onDuplicate={() => duplicateExercise(selectedCategory.id, exercise.id)}
+                  onDelete={() => deleteExercise(selectedCategory.id, exercise.id)}
                   onDragStart={handleDragStart(exercise.id)}
                   onDragOver={handleDragOver}
                   onDrop={handleDrop(exercise.id)}
@@ -827,7 +900,7 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
 
               {/* Add exercise placeholder */}
               <button
-                onClick={() => showAddExerciseModal.value = true}
+                onClick={() => setShowAddExerciseModal(true)}
                 class="w-full border-2 border-dashed border-gray-300 rounded-lg p-8 text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
               >
                 <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -851,44 +924,44 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
 
       {/* Modals */}
       <CategoryFormModal
-        isOpen={showCreateCategoryModal.value}
-        onClose={() => showCreateCategoryModal.value = false}
+        isOpen={showCreateCategoryModal}
+        onClose={() => setShowCreateCategoryModal(false)}
         onSubmit={createCategory}
         title="Create New Category"
       />
 
       <CategoryFormModal
-        isOpen={showEditCategoryModal.value}
+        isOpen={showEditCategoryModal}
         onClose={() => {
-          showEditCategoryModal.value = false;
-          editingCategory.value = null;
+          setShowEditCategoryModal(false);
+          setEditingCategory(null);
         }}
         onSubmit={(name, focusArea, keyObjective) =>
-          updateCategory(editingCategory.value!.id, name, focusArea, keyObjective)
+          updateCategory(editingCategory!.id, name, focusArea, keyObjective)
         }
         title="Edit Category"
-        initialData={editingCategory.value}
+        initialData={editingCategory}
       />
 
       <ExerciseFormModal
-        isOpen={showAddExerciseModal.value}
-        onClose={() => showAddExerciseModal.value = false}
+        isOpen={showAddExerciseModal}
+        onClose={() => setShowAddExerciseModal(false)}
         onSubmit={(name, sets, repetitions, difficulty, description) =>
-          addExercise(selectedCategoryId.value!, name, sets, repetitions, difficulty, description)
+          addExercise(selectedCategoryId!, name, sets, repetitions, difficulty, description)
         }
         title="Add New Exercise"
       />
 
       <ExerciseFormModal
-        isOpen={showEditExerciseModal.value}
+        isOpen={showEditExerciseModal}
         onClose={() => {
-          showEditExerciseModal.value = false;
-          editingExercise.value = null;
+          setShowEditExerciseModal(false);
+          setEditingExercise(null);
         }}
         onSubmit={(name, sets, repetitions, difficulty, description) =>
           updateExercise(
-            selectedCategoryId.value!,
-            editingExercise.value!.id,
+            selectedCategoryId!,
+            editingExercise!.id,
             name,
             sets,
             repetitions,
@@ -897,20 +970,20 @@ export default function WorkoutCategoriesAdmin({ initialCategories }: Props) {
           )
         }
         title="Edit Exercise"
-        initialData={editingExercise.value}
+        initialData={editingExercise}
       />
 
       {/* Toast */}
-      {toastMessage.value && (
+      {toastMessage && (
         <Toast
-          message={toastMessage.value}
-          type={toastType.value}
-          onClose={() => toastMessage.value = ''}
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setToastMessage('')}
         />
       )}
 
       {/* Loading overlay */}
-      {loading.value && (
+      {loading && (
         <div class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div class="bg-white rounded-lg p-6 shadow-xl">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -936,25 +1009,25 @@ function CategoryFormModal({
   title: string;
   initialData?: WorkoutCategory | null;
 }) {
-  const name = useSignal(initialData?.name || '');
-  const focusArea = useSignal(initialData?.focusArea || '');
-  const keyObjective = useSignal(initialData?.keyObjective || '');
+  const [name, setName] = useState(initialData?.name || '');
+  const [focusArea, setFocusArea] = useState(initialData?.focusArea || '');
+  const [keyObjective, setKeyObjective] = useState(initialData?.keyObjective || '');
 
   useEffect(() => {
     if (isOpen && initialData) {
-      name.value = initialData.name;
-      focusArea.value = initialData.focusArea;
-      keyObjective.value = initialData.keyObjective;
+      setName(initialData.name);
+      setFocusArea(initialData.focusArea);
+      setKeyObjective(initialData.keyObjective);
     } else if (!isOpen) {
-      name.value = '';
-      focusArea.value = '';
-      keyObjective.value = '';
+      setName('');
+      setFocusArea('');
+      setKeyObjective('');
     }
   }, [isOpen, initialData]);
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
-    onSubmit(name.value, focusArea.value, keyObjective.value);
+    onSubmit(name, focusArea, keyObjective);
   };
 
   return (
@@ -970,8 +1043,8 @@ function CategoryFormModal({
               required
               maxLength={100}
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={name.value}
-              onInput={(e) => name.value = (e.target as HTMLInputElement).value}
+              value={name}
+              onInput={(e) => setName((e.target as HTMLInputElement).value)}
               placeholder="e.g., Vertical Jump"
             />
           </div>
@@ -985,8 +1058,8 @@ function CategoryFormModal({
               required
               maxLength={100}
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={focusArea.value}
-              onInput={(e) => focusArea.value = (e.target as HTMLInputElement).value}
+              value={focusArea}
+              onInput={(e) => setFocusArea((e.target as HTMLInputElement).value)}
               placeholder="e.g., Lower Body Power"
             />
           </div>
@@ -1000,8 +1073,8 @@ function CategoryFormModal({
               maxLength={500}
               rows={3}
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={keyObjective.value}
-              onInput={(e) => keyObjective.value = (e.target as HTMLTextAreaElement).value}
+              value={keyObjective}
+              onInput={(e) => setKeyObjective((e.target as HTMLTextAreaElement).value)}
               placeholder="e.g., Increase explosive jumping ability for blocking and attacking"
             />
           </div>
@@ -1041,36 +1114,36 @@ function ExerciseFormModal({
   title: string;
   initialData?: Exercise | null;
 }) {
-  const name = useSignal(initialData?.name || '');
-  const sets = useSignal(initialData?.sets.toString() || '3');
-  const repetitions = useSignal(initialData?.repetitions || '');
-  const difficulty = useSignal(initialData?.difficulty || 'medium');
-  const description = useSignal(initialData?.description || '');
+  const [name, setName] = useState(initialData?.name || '');
+  const [sets, setSets] = useState(initialData?.sets.toString() || '3');
+  const [repetitions, setRepetitions] = useState(initialData?.repetitions || '');
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'challenging'>(initialData?.difficulty || 'medium');
+  const [description, setDescription] = useState(initialData?.description || '');
 
   useEffect(() => {
     if (isOpen && initialData) {
-      name.value = initialData.name;
-      sets.value = initialData.sets.toString();
-      repetitions.value = initialData.repetitions;
-      difficulty.value = initialData.difficulty;
-      description.value = initialData.description;
+      setName(initialData.name);
+      setSets(initialData.sets.toString());
+      setRepetitions(initialData.repetitions);
+      setDifficulty(initialData.difficulty);
+      setDescription(initialData.description);
     } else if (!isOpen) {
-      name.value = '';
-      sets.value = '3';
-      repetitions.value = '';
-      difficulty.value = 'medium';
-      description.value = '';
+      setName('');
+      setSets('3');
+      setRepetitions('');
+      setDifficulty('medium');
+      setDescription('');
     }
   }, [isOpen, initialData]);
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
     onSubmit(
-      name.value,
-      parseInt(sets.value),
-      repetitions.value,
-      difficulty.value,
-      description.value
+      name,
+      parseInt(sets),
+      repetitions,
+      difficulty,
+      description
     );
   };
 
@@ -1087,8 +1160,8 @@ function ExerciseFormModal({
               required
               maxLength={100}
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={name.value}
-              onInput={(e) => name.value = (e.target as HTMLInputElement).value}
+              value={name}
+              onInput={(e) => setName((e.target as HTMLInputElement).value)}
               placeholder="e.g., Box Jumps"
             />
           </div>
@@ -1104,8 +1177,8 @@ function ExerciseFormModal({
                 min={1}
                 max={10}
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={sets.value}
-                onInput={(e) => sets.value = (e.target as HTMLInputElement).value}
+                value={sets}
+                onInput={(e) => setSets((e.target as HTMLInputElement).value)}
               />
             </div>
 
@@ -1118,8 +1191,8 @@ function ExerciseFormModal({
                 required
                 maxLength={50}
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={repetitions.value}
-                onInput={(e) => repetitions.value = (e.target as HTMLInputElement).value}
+                value={repetitions}
+                onInput={(e) => setRepetitions((e.target as HTMLInputElement).value)}
                 placeholder="e.g., 8-10"
               />
             </div>
@@ -1132,8 +1205,8 @@ function ExerciseFormModal({
             <select
               required
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={difficulty.value}
-              onChange={(e) => difficulty.value = (e.target as HTMLSelectElement).value}
+              value={difficulty}
+              onChange={(e) => setDifficulty((e.target as HTMLSelectElement).value as 'easy' | 'medium' | 'challenging')}
             >
               <option value="easy">Easy</option>
               <option value="medium">Medium</option>
@@ -1149,8 +1222,8 @@ function ExerciseFormModal({
               maxLength={500}
               rows={3}
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={description.value}
-              onInput={(e) => description.value = (e.target as HTMLTextAreaElement).value}
+              value={description}
+              onInput={(e) => setDescription((e.target as HTMLTextAreaElement).value)}
               placeholder="Describe the exercise technique and focus points..."
             />
           </div>

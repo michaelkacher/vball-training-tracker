@@ -1,6 +1,6 @@
 # System Architecture
 
-**Last Updated:** 2025-01-27
+**Last Updated:** 2025-11-02
 
 ## Overview
 
@@ -160,6 +160,9 @@ frontend/
 ['posts', postId]                    // Post by ID
 ['posts_by_user', userId, postId]    // User's posts
 ['comments', postId, commentId]      // Post's comments
+
+// Workout Categories (implemented)
+['workout_category', categoryId]     // Category with nested exercises
 ```
 
 ### Deployment: Deno Deploy
@@ -481,6 +484,28 @@ Major architectural decisions are documented in `docs/adr/`.
 - Could move to Docker + Kubernetes
 - Could compile to binary for VPS
 - For now: Deno Deploy is perfect
+
+---
+
+## Implemented Features
+
+### Workout Categories Admin (Added: 2025-11-02)
+
+An admin interface for managing default volleyball training workout categories and their associated exercises. Administrators can create, edit, and organize workout categories with full CRUD operations on exercises including difficulty levels, sets, repetitions, and drag-and-drop reordering.
+
+**API Routes:** `/api/admin/workout-categories/*`
+**Frontend Route:** `/admin/workout-categories`
+**Database Schema:** `['workout_category', categoryId]` with nested exercises array
+
+**Key Features:**
+- 10 RESTful API endpoints (list, create, read, update, delete for categories and exercises)
+- Master-detail UI with search and pagination
+- Drag-and-drop exercise reordering
+- Exercise duplication within or across categories
+- Comprehensive validation with Zod schemas
+- 154 tests (all passing)
+
+**Details:** See `features/implemented/workout-categories-admin/`
 
 ---
 
